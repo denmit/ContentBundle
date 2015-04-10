@@ -124,8 +124,12 @@ class ContentManager implements ContentManagerInterface
      */
     public function handleNestedContentForm(Request $request, ContentInterface $content)
     {
+        dump($request->request->all());
         $this->recursiveContentMapper($request, $content);
+        dump($test);
     }
+
+    private $nested_level = false;
 
     /**
      * Maps the formdata to the related nestedcontent item resursively
@@ -143,8 +147,10 @@ class ContentManager implements ContentManagerInterface
     public function recursiveContentMapper(Request $request, ContentInterface $content, $level = 1, $parentKey = 'opifer_content')
     {
         $formdata = $request->request->all();
-
+        // dump($level);
+        // dump($this->nested_level);
         $relatedformdata = $this->getFormDataByLevel($formdata, $level, $parentKey);
+        // dump($relatedformdata);
 
         foreach ($content->getNestedContentAttributes() as $attribute => $value) {
             // Store the original Ids, so we can check later what items were removed
@@ -155,7 +161,9 @@ class ContentManager implements ContentManagerInterface
             }
 
             $sort = 0;
+            // dump($relatedformdata);
             foreach ($relatedformdata as $key => $data) {
+                // dump($key);
                 $keys = $this->separateKeys($key);
 
                 $nestedContent = $this->getContentByReference($keys['reference']);
@@ -181,13 +189,17 @@ class ContentManager implements ContentManagerInterface
                 }
 
                 $level++;
-
+                dump($level . ' - ' . $key);
                 $this->recursiveContentMapper($request, $nestedContent, $level, $key);
             }
 
             $this->remove(array_diff($oldIds, $ids));
         }
 
+        // dump($test);
+        // dump($level);
+
+        $this->nested_level = true;
         return true;
     }
 
@@ -232,6 +244,7 @@ class ContentManager implements ContentManagerInterface
     private function getFormDataByLevel($formdata, $level = 1, $parent)
     {
         $collection = [];
+        $i = 1;
         foreach ($formdata as $key => $data) {
             if (!strpos($key, NestedContentType::SEPARATOR) || strpos($key, 'valueset_namedvalues')) {
                 continue;
@@ -240,13 +253,23 @@ class ContentManager implements ContentManagerInterface
             $keys = explode(NestedContentType::SEPARATOR, $key);
             array_shift($keys);
 
+            // dump($key);
+            // dump($parent);
+            
+            // dump(count($keys) == ($level * 3));
+
             if (count($keys) == ($level * 3)) {
+                // dump($i . ' - ' . $key . ' - ' . $parent);
                 $pos = strpos($key, $parent);
+                // dump($pos);
                 if (($level > 1 && ($pos !== false)) || $level == 1) {
                     $collection[$key] = $data;
                 }
             }
+
+            $i++;
         }
+        
 
         return $collection;
     }
